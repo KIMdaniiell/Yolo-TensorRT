@@ -1,0 +1,86 @@
+# Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
+
+# Hand Keypoints dataset by Ultralytics
+# Documentation: https://docs.ultralytics.com/datasets/pose/hand-keypoints/
+# Example usage: yolo train data=hand-keypoints.yaml
+# parent
+# ├── ultralytics
+# └── datasets
+#     └── hand-keypoints ← downloads here (369 MB)
+
+# Train/val/test sets as 1) dir: path/to/imgs, 2) file: path/to/imgs.txt, or 3) list: [path/to/imgs1, path/to/imgs2, ..]
+path: datasets/hand-without-keypoints # dataset root dir
+train: images/train # train images (relative to 'path') 18776 images
+val: images/val # val images (relative to 'path') 7992 images
+
+# Keypoints
+kpt_shape: [21, 3] # number of keypoints, number of dims (2 for x,y or 3 for x,y,visible)
+flip_idx:
+  [0, 1, 2, 4, 3, 10, 11, 12, 13, 14, 5, 6, 7, 8, 9, 15, 16, 17, 18, 19, 20]
+
+# Classes
+names:
+  0: hand
+
+# Keypoint names per class
+kpt_names:
+  0:
+    - wrist
+    - thumb_cmc
+    - thumb_mcp
+    - thumb_ip
+    - thumb_tip
+    - index_mcp
+    - index_pip
+    - index_dip
+    - index_tip
+    - middle_mcp
+    - middle_pip
+    - middle_dip
+    - middle_tip
+    - ring_mcp
+    - ring_pip
+    - ring_dip
+    - ring_tip
+    - pinky_mcp
+    - pinky_pip
+    - pinky_dip
+    - pinky_tip
+
+# Download script/URL (optional)
+download: |
+  import os
+  import glob
+  from tqdm import tqdm
+  from utils.general import download, Path
+
+  # Downloading dataset
+  dir = Path(yaml['path'])  # dataset root dir
+  url = 'https://github.com/ultralytics/assets/releases/download/v0.0.0/hand-keypoints.zip'
+  download(url, dir=dir)
+
+  # Removing everything exept hand bounding boxes from labels
+
+  def convert_line(line:str):
+    return ' '.join(line.strip().split()[:5])
+
+  def convert_file(file_path: str):
+
+    with open(file_path, 'r') as f:
+      lines = f.readlines()
+
+    for i, line in enumerate(lines):
+      lines[i] = convert_line(line)
+
+    with open(file_path, 'w') as f:
+      f.writelines(lines)
+  
+  train_label_files = glob.glob(f'{dir}/labels/train/*.txt')
+  p_bar = tqdm(train_label_files, desc="Removing keypoits from train labels")
+  for label_file in p_bar:
+      convert_file(label_file)
+
+  val_label_files = glob.glob(f'{dir}/labels/val/*.txt')
+  p_bar = tqdm(val_label_files, desc="Removing keypoits from val labels")
+  for label_file in p_bar:
+    convert_file(label_file)
