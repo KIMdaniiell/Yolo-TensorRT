@@ -206,7 +206,7 @@ def run(
     exist_ok=False,  # existing project/name ok, do not increment
     half=True,  # use FP16 half-precision inference
     dnn=False,  # use OpenCV DNN for ONNX inference
-    model:Model|None=None,
+    model:Model|torch.fx.GraphModule|None=None,
     dataloader=None,
     save_dir=Path(""),
     plots=True,
@@ -260,8 +260,13 @@ def run(
 
     # Set device
     if model_mode and (device == "" or device is None):
-        # device = next(model.parameters()).device
-        device = next(model.buffers()).device # У квантованных parameters пустые
+        if len(list(model.parameters())) > 0:
+            device = next(model.parameters()).device
+        elif len(list(model.parameters())) > 0:
+            device = next(model.buffers()).device # У квантованных parameters пустые
+        else:
+            LOGGER.warning(f"WARNING ⚠️ no device found in the given model")
+            device = select_device(device, batch_size=batch_size)
     else:
         device = select_device(device, batch_size=batch_size)
 
@@ -274,6 +279,7 @@ def run(
         ### Detect Model ###
         pt, jit, engine = True, False, False
         half &= device.type != "cpu"  # half precision only supported on CUDA
+        LOGGER.info("Using model.half()" if half else "Using model.float()")
         model.half() if half else model.float()
     else:           
         ### WEIGHTS ROOT ###
